@@ -1,0 +1,9 @@
+---
+- name: Reboot the node
+  reboot:
+    msg: "Rebooting for system updates"
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 60
+    test_command: uptime

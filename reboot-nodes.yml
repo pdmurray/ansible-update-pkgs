@@ -1,0 +1,10 @@
+---
+- name: Reboot Ubuntu nodes
+  hosts: ubuntu_nodes
+  become: yes
+  vars_prompt:
+    - name: ansible_become_password
+      prompt: "Enter sudo password"
+      private: yes
+  roles:
+    - reboot-node
