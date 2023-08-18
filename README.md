@@ -30,3 +30,19 @@ host3
 host4 ansible_user=root
 host5 ansible_user=pi
 ```
+
+## Usage
+
+```
+# Update packages on ubuntu_nodes, and if necessary, reboot the nodes
+$ ansible-playbook -i inventory.ini update-packages.yml
+
+# Update packages and pihole itself on pihole_nodes
+$ ansible-playbook -i inventory.ini update-pihole.yml
+
+# Reboot nodes
+$ ansible-playbook -i inventory.ini reboot-nodes.yml
+
+# Update TrueNAS SCALE installed Helm Charts
+$ ansible-playbook update-truenas-charts.yml
+```
