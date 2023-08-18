@@ -1,0 +1,17 @@
+---
+- name: Update charts on TrueNAS
+  hosts: localhost
+  vars_files:
+    - truenas-servers.yml
+  gather_facts: false
+  tasks:
+    - name: Update each server
+      include_role:
+        name: update-truenas-charts
+      vars:
+        server: "{{ server_item }}"
+      loop: "{{ servers }}"
+      loop_control:
+        loop_var: server_item
+        label: "{{ server_item.hostname }}"
+

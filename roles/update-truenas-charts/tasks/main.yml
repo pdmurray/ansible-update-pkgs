@@ -1,0 +1,36 @@
+- name: Get list of installed Kubernetes charts
+  uri:
+    url: "https://{{ server.hostname }}/api/v2.0/chart/release"
+    method: GET
+    headers:
+      Accept: application/json
+      Authorization: 'Bearer {{ server.token }}'
+      Content-Type: application/json
+    return_content: yes
+    validate_certs: "{{ server.validate_certs }}"  # Use this if your certificate is not recognized, but exercise caution.
+  register: api_response
+
+- name: Extract names of charts with updates available
+  set_fact:
+    charts_to_update: "{{ api_response.json | json_query('[?update_available == `true`].name') }}"
+
+- name: Display names of charts to be updated
+  debug:
+    var: charts_to_update
+
+- name: Upgrade each chart
+  uri:
+    url: "https://{{ server.hostname }}/api/v2.0/chart/release/upgrade"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ server.token }}"
+      Content-Type: "application/json"
+    body:
+      release_name: "{{ item }}"
+      upgrade_options: {}
+    body_format: json
+    status_code: 200,201,202
+    validate_certs: "{{ server.validate_certs }}"
+  loop: "{{ charts_to_update }}"
+  loop_control:
+    label: "{{ item }}"
