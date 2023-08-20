@@ -15,8 +15,14 @@ spec:
             - name: ssh-key-volume
               mountPath: /etc/ssh_keys
               readOnly: true
+            - name: inventory-volume
+              mountPath: /etc/inventory
+              readOnly: true
           restartPolicy: OnFailure
           volumes:
           - name: ssh-key-volume
             secret:
               secretName: ssh-key-secret
+          - name: inventory-volume
+            configMap:
+              name: inventory-configmap  # Assuming you have a ConfigMap named 'inventory-configmap' with the inventory.ini file

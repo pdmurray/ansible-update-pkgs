@@ -31,6 +31,15 @@ host4 ansible_user=root
 host5 ansible_user=pi
 ```
 
+
+To use with kubernetes, create the necessary secrets:
+
+```
+$ kubectl create configmap inventory-configmap --from-file=inventory.ini=path/to/your/inventory.ini
+
+$ kubectl create secret generic ssh-key-secret --from-file=id_rsa=mykey
+```
+
 ## Usage
 
 ```
