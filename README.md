@@ -31,16 +31,9 @@ host4 ansible_user=root
 host5 ansible_user=pi
 ```
 
-
-To use with kubernetes, create the necessary secrets:
-
-```
-$ kubectl create configmap inventory-configmap --from-file=inventory.ini=path/to/your/inventory.ini
-
-$ kubectl create secret generic ssh-key-secret --from-file=id_rsa=mykey
-```
-
 ## Usage
+
+### Running locally
 
 ```
 # Update packages on ubuntu_nodes, and if necessary, reboot the nodes
@@ -54,4 +47,21 @@ $ ansible-playbook -i inventory.ini reboot-nodes.yml
 
 # Update TrueNAS SCALE installed Helm Charts
 $ ansible-playbook update-truenas-charts.yml
+```
+
+### Running on Kubernetes
+
+
+To use with kubernetes, create the necessary secrets:
+
+```
+$ kubectl create configmap inventory-configmap --from-file=inventory.ini=path/to/your/inventory.ini
+
+$ kubectl create secret generic ssh-key-secret --from-file=id_rsa=mykey
+```
+
+Then, deploy the cronjob:
+
+```
+$ kubectl apply -f your_cronjob_filename.yaml
 ```
