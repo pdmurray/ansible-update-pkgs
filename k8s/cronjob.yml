@@ -1,0 +1,22 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: nightly-ansible-job
+spec:
+  schedule: "0 0 * * *"  # This means "At 00:00 (midnight) every day"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: ansible-container
+            image: your_dockerhub_username/repository_name:latest
+            volumeMounts:
+            - name: ssh-key-volume
+              mountPath: /etc/ssh_keys
+              readOnly: true
+          restartPolicy: OnFailure
+          volumes:
+          - name: ssh-key-volume
+            secret:
+              secretName: ssh-key-secret
