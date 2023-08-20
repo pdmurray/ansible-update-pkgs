@@ -10,7 +10,7 @@ spec:
         spec:
           containers:
           - name: ansible-container
-            image: your_dockerhub_username/repository_name:latest
+            image: pdmurray/ansible-update-pkgs:latest
             volumeMounts:
             - name: ssh-key-volume
               mountPath: /etc/ssh_keys

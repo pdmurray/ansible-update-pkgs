@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ansible-playbook-test
+spec:
+  template:
+    spec:
+      containers:
+      - name: ansible-container
+        image: pdmurray/ansible-update-pkgs:latest
+        volumeMounts:
+        - name: ssh-key-volume
+          mountPath: /etc/ssh_keys
+          readOnly: true
+        - name: inventory-volume
+          mountPath: /etc/inventory
+          readOnly: true
+      restartPolicy: Never
+      volumes:
+      - name: ssh-key-volume
+        secret:
+          secretName: ssh-key-secret
+      - name: inventory-volume
+        configMap:
+          name: inventory-configmap
