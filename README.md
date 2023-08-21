@@ -78,5 +78,5 @@ $ kubectl apply -f cronjob.yaml
 Fill in the values file with the inventory and ssh key in the appropropriate fields, then:
 
 ```
-helm install ansible-job ./ansible-job-chart
+$ helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml
 ```
