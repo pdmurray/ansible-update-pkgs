@@ -88,3 +88,9 @@ To deploy as a CronJob that runs, for example, every day at midnight:
 ```
 helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml --set cronSchedule="0 0 * * *"
 ```
+
+To run an alternate playbook, with optional extraArgs:
+
+```
+helm install ansible-job ./ansible-job-chart --set playbook.name=alternate-playbook.yml,playbook.extraArgs="--extra-vars 'foo=bar'"
+```

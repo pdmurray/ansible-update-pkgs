@@ -35,7 +35,7 @@ spec:
       - name: ansible-container
         image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         command: ["/bin/sh", "-c"]
-        args: ["ansible-playbook -i /etc/inventory/inventory.ini update-packages.yml"]
+        args: ["ansible-playbook -i /etc/inventory/inventory.ini {{ .Values.playbook.extraArgs }} {{ .Values.playbook.name }}"]
         volumeMounts:
         - name: temp-volume
           mountPath: /etc/ssh_keys
