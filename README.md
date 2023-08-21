@@ -100,3 +100,9 @@ For example, to run the TrueNAS chart, fill out the truenasServers block in valu
 ```
 helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml --set playbook.name=update-truenas-charts.yml
 ```
+
+Or, set it up as a cronJob:
+
+```
+helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml --set playbook.name=update-truenas-charts.yml,cronSchedule="0 0 * * *"
+```
