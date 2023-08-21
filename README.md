@@ -55,13 +55,13 @@ $ ansible-playbook update-truenas-charts.yml
 To use with kubernetes, create the necessary secrets:
 
 ```
-$ kubectl create configmap inventory-configmap --from-file=inventory.ini=path/to/your/inventory.ini
+$ kubectl create configmap inventory-configmap --from-file=inventory.ini=./inventory.ini
 
-$ kubectl create secret generic ssh-key-secret --from-file=id_rsa=mykey
+$ kubectl create secret generic ssh-key-secret --from-file=id_rsa=./id_rsa
 ```
 
 Then, deploy the cronjob:
 
 ```
-$ kubectl apply -f your_cronjob_filename.yaml
+$ kubectl apply -f cronjob.yaml
 ```

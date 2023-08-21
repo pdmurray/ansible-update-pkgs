@@ -26,4 +26,4 @@ ENV ANSIBLE_PRIVATE_KEY_FILE=/etc/ssh_keys/id_rsa
 ENV ANSIBLE_HOST_KEY_CHECKING=False
 
 # Default command for the container
-CMD ["ansible-playbook", "-i", "/etc/inventory/inventory.ini", "playbook.yml"]
+CMD ["ansible-playbook", "-i", "/etc/inventory/inventory.ini", "update-packages.yml"]
