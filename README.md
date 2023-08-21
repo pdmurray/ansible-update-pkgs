@@ -92,5 +92,11 @@ helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml --
 To run an alternate playbook, with optional extraArgs:
 
 ```
-helm install ansible-job ./ansible-job-chart --set playbook.name=alternate-playbook.yml,playbook.extraArgs="--extra-vars 'foo=bar'"
+helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml --set playbook.name=alternate-playbook.yml,playbook.extraArgs="--extra-vars 'foo=bar'"
+```
+
+For example, to run the TrueNAS chart, fill out the truenasServers block in values.yaml, and then run:
+
+```
+helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml --set playbook.name=update-truenas-charts.yml
 ```
