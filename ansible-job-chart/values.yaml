@@ -4,6 +4,11 @@ image:
 
 cronSchedule: "" # By default, this is empty meaning it's a regular Job. If set, it'll be a CronJob.
 
+truenasServers: []  # By default, this is empty, and the truenas-servers.yml and truenas secrets won't be created.
+  # - hostname: default-host.lab.example.org
+  #   token: default-token
+  #   validate_certs: false
+
 playbook:
   name: "update-packages.yml"  # update-packages.yml, update-pihole.yml, reboot-nodes.yml, update-truenas-charts.yml
   extraArgs: ""  # Optional extra arguments you'd like to pass to the `ansible-playbook` command

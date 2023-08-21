@@ -2,7 +2,7 @@
 - name: Update charts on TrueNAS
   hosts: localhost
   vars_files:
-    - truenas-servers.yml
+    - "{{ lookup('env','TRUENAS_CONFIG_FILE') | default('./truenas-servers.yml') }}"
   gather_facts: false
   tasks:
     - name: Update each server
@@ -14,4 +14,3 @@
       loop_control:
         loop_var: server_item
         label: "{{ server_item.hostname }}"
-
