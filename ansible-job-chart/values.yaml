@@ -3,9 +3,9 @@ image:
   tag: latest
 
 sshKey: |
-  -----BEGIN RSA PRIVATE KEY-----
+  -----BEGIN OPENSSH PRIVATE KEY-----
   ...
-  -----END RSA PRIVATE KEY-----
+  -----END OPENSSH PRIVATE KEY-----
 
 inventorySecret: |
   [all:vars]
