@@ -1,0 +1,26 @@
+image:
+  repository: pdmurray/ansible-update-pkgs
+  tag: latest
+
+sshKey: |
+  -----BEGIN RSA PRIVATE KEY-----
+  ...
+  -----END RSA PRIVATE KEY-----
+
+inventorySecret: |
+  [all:vars]
+  ansible_become_password=**********
+
+  [ubuntu_nodes]
+  node1
+  node2
+  node3
+
+  [ubuntu_nodes:vars]
+  ansible_user=pdmurray
+
+  [pihole_nodes]
+  node4 ansible_user=root
+  node5 ansible_user=pi
+  ...
+

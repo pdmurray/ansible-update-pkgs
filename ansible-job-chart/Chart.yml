@@ -1,0 +1,4 @@
+apiVersion: v2
+name: ansible-job-chart
+version: 0.1.0
+description: A Helm chart to run Ansible playbooks
