@@ -21,14 +21,21 @@ servers:
 In addition, create an inventory.ini file with the following structure:
 
 ```
+[all:vars]
+ansible_become_password=**********
+
 [ubuntu_nodes]
-host1
-host2
-host3
+node1
+node2
+node3
+
+[ubuntu_nodes:vars]
+ansible_user=pdmurray
 
 [pihole_nodes]
-host4 ansible_user=root
-host5 ansible_user=pi
+node4 ansible_user=root
+node5 ansible_user=pi
+
 ```
 
 ## Usage
@@ -37,13 +44,13 @@ host5 ansible_user=pi
 
 ```
 # Update packages on ubuntu_nodes, and if necessary, reboot the nodes
-$ ansible-playbook -i inventory.ini update-packages.yml
+$ ansible-playbook -i inventory.ini update-packages.yml --ask-become-pass
 
 # Update packages and pihole itself on pihole_nodes
-$ ansible-playbook -i inventory.ini update-pihole.yml
+$ ansible-playbook -i inventory.ini update-pihole.yml --ask-become-pass
 
 # Reboot nodes
-$ ansible-playbook -i inventory.ini reboot-nodes.yml
+$ ansible-playbook -i inventory.ini reboot-nodes.yml --ask-become-pass
 
 # Update TrueNAS SCALE installed Helm Charts
 $ ansible-playbook update-truenas-charts.yml

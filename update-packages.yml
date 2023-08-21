@@ -2,9 +2,5 @@
 - name: Update all packages on Ubuntu nodes
   hosts: ubuntu_nodes
   become: yes
-  vars_prompt:
-    - name: ansible_become_password
-      prompt: "Enter sudo password"
-      private: yes
   roles:
     - update-packages
