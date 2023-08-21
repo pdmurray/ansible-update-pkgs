@@ -1,10 +1,23 @@
+{{- if .Values.cronSchedule }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: ansible-playbook-cronjob
+spec:
+  schedule: {{ .Values.cronSchedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+{{- else }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: ansible-playbook-test
+  name: ansible-playbook-job
 spec:
   template:
     spec:
+{{- end }}
       initContainers:
       - name: copy-ssh-key
         image: alpine

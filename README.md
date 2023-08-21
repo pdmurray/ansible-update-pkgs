@@ -75,8 +75,16 @@ $ kubectl apply -f cronjob.yaml
 
 ### Running with Helm
 
-Fill in the values file with the inventory and ssh key in the appropropriate fields, then:
+First, fill in the values file with the inventory and ssh key in the appropropriate fields.
+
+To deploy a regular job:
 
 ```
-$ helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml
+helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml
+```
+
+To deploy as a CronJob that runs, for example, every day at midnight:
+
+```
+helm install ansible-job ./ansible-job-chart -f ansible-job-chart/values.yaml --set cronSchedule="0 0 * * *"
 ```
