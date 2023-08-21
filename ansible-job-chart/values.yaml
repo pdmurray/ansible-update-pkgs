@@ -23,4 +23,3 @@ inventorySecret: |
   node4 ansible_user=root
   node5 ansible_user=pi
   ...
-

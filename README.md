@@ -7,7 +7,7 @@ A simple ansible project to keep my servers / pihole nodes updated.
 
  - ansible (`pipx install --include-deps ansible`)
  - jmespath (`python3 -m pip install jmespath`)
-
+ - Helm (https://helm.sh/docs/intro/install/)
 
 Set up a truenas-servers.yml file in the root with the following structure:
 
@@ -58,7 +58,6 @@ $ ansible-playbook update-truenas-charts.yml
 
 ### Running on Kubernetes
 
-
 To use with kubernetes, create the necessary secrets:
 
 ```
@@ -72,4 +71,12 @@ Then, deploy the cronjob:
 
 ```
 $ kubectl apply -f cronjob.yaml
+```
+
+### Running with Helm
+
+Fill in the values file with the inventory and ssh key in the appropropriate fields, then:
+
+```
+helm install ansible-job ./ansible-job-chart
 ```
