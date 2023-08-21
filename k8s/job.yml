@@ -5,13 +5,26 @@ metadata:
 spec:
   template:
     spec:
+      initContainers:
+      - name: copy-ssh-key
+        image: alpine
+        command:
+        - sh
+        - -c
+        - |
+          cp /etc/ssh_keys/id_rsa /tmp/id_rsa && chmod 600 /tmp/id_rsa && ls -l /tmp/id_rsa
+        volumeMounts:
+        - name: ssh-key-volume
+          mountPath: /etc/ssh_keys
+        - name: temp-volume
+          mountPath: /tmp
       containers:
       - name: ansible-container
         image: pdmurray/ansible-update-pkgs:latest
         command: ["/bin/sh", "-c"]  # Use shell to interpret the command
         args: ["ansible-playbook -i /etc/inventory/inventory.ini update-packages.yml"]
         volumeMounts:
-        - name: ssh-key-volume
+        - name: temp-volume
           mountPath: /etc/ssh_keys
           readOnly: true
         - name: inventory-volume
@@ -23,5 +36,7 @@ spec:
         secret:
           secretName: ssh-key-secret
       - name: inventory-volume
-        configMap:
-          name: inventory-configmap
+        secret:
+          secretName: inventory-secret
+      - name: temp-volume
+        emptyDir: {}
