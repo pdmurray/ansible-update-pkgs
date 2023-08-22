@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansible Playbook Runner</title>
+</head>
+<body>
+    <h1>Select a playbook to run</h1>
+    <select id="playbook-dropdown">
+        {% for playbook in playbooks %}
+        <option value="{{ playbook }}">{{ playbook }}</option>
+        {% endfor %}
+    </select>
+    <button onclick="runPlaybook()">Run</button>
+
+    <h2>Output:</h2>
+    <pre id="output"></pre>
+
+    <script>
+        function runPlaybook() {
+            const selectedPlaybook = document.getElementById('playbook-dropdown').value;
+            fetch('/run-playbook', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    playbook: selectedPlaybook
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  document.getElementById('output').textContent = data.output;
+              });
+        }
+    </script>
+</body>
+</html>

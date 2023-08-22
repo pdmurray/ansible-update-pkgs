@@ -1,3 +1,4 @@
+{{- if not .Values.apiServer.enabled }}
 {{- if .Values.cronSchedule }}
 apiVersion: batch/v1
 kind: CronJob
@@ -19,4 +20,5 @@ spec:
   template:
     spec:
 {{- include "ansible-job-chart.jobSpec" . | nindent 6 }}
+{{- end }}
 {{- end }}
