@@ -9,6 +9,8 @@ A simple ansible project to keep my servers / pihole nodes updated.
  - jmespath (`python3 -m pip install jmespath`)
  - Helm (https://helm.sh/docs/intro/install/)
 
+The 'jmespath' pip module can be satisfied by rinning `pip3 install -r requirements.txt`
+
 Set up a truenas-servers.yml file in the root with the following structure:
 
 ```
