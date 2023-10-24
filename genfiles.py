@@ -93,6 +93,25 @@ def preview_and_edit(section_fetcher, content_renderer):
                 new_val = input(f"{key} (currently {value}): ").strip()
                 if new_val:
                     sections[section_name][key] = new_val
+
+        elif section_name == "servers":
+            print(f"\nEditing {section_name}...")
+            servers = sections[section_name]
+            new_servers = []
+            for idx, server in enumerate(servers):
+                print(f"\nEditing server {idx+1} details:")
+                new_hostname = input(f"hostname (currently {server['hostname']}): ").strip() or server['hostname']
+                new_token = input(f"token (currently {server['token']}): ").strip() or server['token']
+                new_validate_certs = input(f"validate_certs (currently {server['validate_certs']}): ").strip()
+                new_validate_certs = server['validate_certs'] if not new_validate_certs else (True if new_validate_certs.lower() == 'true' else False)
+
+                new_servers.append({
+                    'hostname': new_hostname,
+                    'token': new_token,
+                    'validate_certs': new_validate_certs
+                })
+            sections[section_name] = new_servers
+
         else:
             items = sections[section_name]
             print(f"\nEditing {section_name}...")
@@ -105,10 +124,10 @@ def preview_and_edit(section_fetcher, content_renderer):
     # Ask user whether to save or discard changes
     save_changes = input("Do you want to save the changes? (yes/no): ").strip().lower()
     if save_changes == "yes":
-        return content
+        return True, content  # Return True indicating the changes should be saved
     else:
         print("Discarding changes...")
-        return content_renderer(original_sections)  # Revert to the original content
+        return False, content_renderer(original_sections)  # Return False indicating the changes were discarded
 
 
 
@@ -232,16 +251,17 @@ def edit_file(filename):
     
     if filename == "inventory.ini":
         sections = parse_inventory_ini(content)
-        updated_content = preview_and_edit(lambda: sections, render_ansible_content)
+        save_status, updated_content = preview_and_edit(lambda: sections, render_ansible_content)
     elif filename == "truenas-servers.yml":
         sections = parse_truenas_servers_yml(content)
-        updated_content = preview_and_edit(lambda: sections, render_truenas_content)
+        save_status, updated_content = preview_and_edit(lambda: sections, render_truenas_content)
     else:
         print("Unknown file format!")
         return
 
-    with open(filename, 'w') as file:
-        file.write(updated_content)
+    if save_status:
+        with open(filename, 'w') as file:
+            file.write(updated_content)
 
 def run_ansible_playbook():
     print("\nAvailable playbooks:")
@@ -268,18 +288,20 @@ def run_ansible_playbook():
         print("Invalid choice. Please select a valid playbook.")
 
 def main_generate_ansible_inventory():
-    ansible_content = preview_and_edit(create_ansible_content, render_ansible_content)
-    ansible_filename = input("Enter the filename for the ansible inventory (default: inventory.ini): ") or "inventory.ini"
-    with open(ansible_filename, "w") as f:
-        f.write(ansible_content)
-    os.chmod(ansible_filename, 0o600)
+    save_status, ansible_content = preview_and_edit(create_ansible_content, render_ansible_content)
+    if save_status:
+        ansible_filename = input("Enter the filename for the ansible inventory (default: inventory.ini): ") or "inventory.ini"
+        with open(ansible_filename, "w") as f:
+            f.write(ansible_content)
+        os.chmod(ansible_filename, 0o600)
 
 def main_generate_truenas():
-    truenas_content = preview_and_edit(create_truenas_content, render_truenas_content)
-    truenas_filename = input("Enter the filename for the truenas servers (default: truenas-servers.yml): ") or "truenas-servers.yml"
-    with open(truenas_filename, "w") as f:
-        f.write(truenas_content)
-    os.chmod(truenas_filename, 0o600)
+    save_status, truenas_content = preview_and_edit(create_truenas_content, render_truenas_content)
+    if save_status:
+        truenas_filename = input("Enter the filename for the truenas servers (default: truenas-servers.yml): ") or "truenas-servers.yml"
+        with open(truenas_filename, "w") as f:
+            f.write(truenas_content)
+        os.chmod(truenas_filename, 0o600)
 
 if __name__ == "__main__":
     interactive_prompt()
