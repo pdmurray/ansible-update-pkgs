@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import copy
 
 def get_input_list(prompt):
     nodes = []
@@ -64,7 +65,8 @@ def create_truenas_content():
     return {"servers": section_servers()}
 
 def preview_and_edit(section_fetcher, content_renderer):
-    sections = section_fetcher()
+    original_sections = section_fetcher()
+    sections = copy.deepcopy(original_sections)  # Start with a fresh copy of the original content
     
     while True:
         content = content_renderer(sections)
@@ -100,7 +102,15 @@ def preview_and_edit(section_fetcher, content_renderer):
                 new_items.append(new_item if new_item else item)
             sections[section_name] = new_items
 
-    return content
+    # Ask user whether to save or discard changes
+    save_changes = input("Do you want to save the changes? (yes/no): ").strip().lower()
+    if save_changes == "yes":
+        return content
+    else:
+        print("Discarding changes...")
+        return content_renderer(original_sections)  # Revert to the original content
+
+
 
 def interactive_prompt():
     while True:
