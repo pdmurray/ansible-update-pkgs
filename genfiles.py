@@ -24,16 +24,18 @@ def section_pihole_nodes():
     return nodes_info
 
 def create_ansible_content():
-    sections = {
-        "ansible_become_password": input("Enter ansible_become_password: "),
-        "ubuntu_nodes": section_ubuntu_nodes(),
-        "ubuntu_nodes_vars": None,
-        "pihole_nodes": section_pihole_nodes()
-    }
+    sections = {}
+    sections["all:vars"] = {"ansible_become_password": input("Enter ansible_become_password: ")}
+    sections["ubuntu_nodes"] = section_ubuntu_nodes()
+
     if sections["ubuntu_nodes"]:
-        sections["ubuntu_nodes_vars"] = input("Enter common ansible_user for all ubuntu nodes: ")
+        sections["ubuntu_nodes:vars"] = {"ansible_user": input("Enter common ansible_user for all ubuntu nodes: ")}
+
+    pihole_nodes_list = section_pihole_nodes()
+    sections["pihole_nodes"] = [f"{node[0]} ansible_user={node[1]}" for node in pihole_nodes_list]
 
     return sections
+
 
 def section_servers():
     servers_info = []
@@ -48,66 +50,208 @@ def section_servers():
 def create_truenas_content():
     return {"servers": section_servers()}
 
-def render_ansible_content(sections):
-    content = f"[all:vars]\nansible_become_password={sections['ansible_become_password']}\n\n"
-    content += "[ubuntu_nodes]\n" + "\n".join(sections["ubuntu_nodes"]) + "\n"
-    if sections["ubuntu_nodes_vars"]:
-        content += f"\n[ubuntu_nodes:vars]\nansible_user={sections['ubuntu_nodes_vars']}\n"
-    content += "\n[pihole_nodes]\n" + "\n".join([f"{node} ansible_user={user}" for node, user in sections["pihole_nodes"]])
-
-    return content
-
-def render_truenas_content(sections):
-    return "servers:\n" + "\n".join([f"  - hostname: {hostname}\n    token: {token}\n    validate_certs: false" for hostname, token in sections["servers"]])
-
-def preview_and_edit(content_creator, content_renderer):
-    sections = content_creator()
+def preview_and_edit(section_fetcher, content_renderer):
+    sections = section_fetcher()
     
-    section_names = list(sections.keys())
-
     while True:
         content = content_renderer(sections)
-        print("\n" + "-" * 40 + "\n")
+        print("\n----------------------------------------")
         print(content)
-        print("\n" + "-" * 40 + "\n")
+        print("----------------------------------------")
         
-        print("Sections available for editing:")
-        for idx, section in enumerate(section_names, 1):
-            print(f"{idx}. {section}")
-        
-        try:
-            decision_idx = int(input("Which section would you like to edit? (Enter section number or '0' to finish): "))
-            if decision_idx == 0:
-                break
-            if 0 < decision_idx <= len(section_names):
-                decision = section_names[decision_idx-1]
-            else:
-                print("Invalid choice. Please choose again.")
-                continue
-        except ValueError:
-            print("Invalid input. Please enter a number.")
-            continue
+        # Display section numbers after the preview
+        section_names = list(sections.keys())
+        for idx, name in enumerate(section_names, 1):
+            print(f"{idx}. {name}")
 
-        if decision == "ansible_become_password":
-            sections[decision] = input("Enter ansible_become_password: ")
-        elif decision == "ubuntu_nodes":
-            sections[decision] = section_ubuntu_nodes()
-        elif decision == "ubuntu_nodes_vars":
-            sections[decision] = input("Enter common ansible_user for all ubuntu nodes: ")
-        elif decision == "pihole_nodes":
-            sections[decision] = section_pihole_nodes()
-        elif decision == "servers":
-            sections[decision] = section_servers()
+        # Edit
+        section_to_edit = input("\nEnter the section number you'd like to edit (or 'done' to finish): ").strip()
+        if section_to_edit.lower() == 'done':
+            break
+
+        section_to_edit = int(section_to_edit) - 1
+        section_name = section_names[section_to_edit]
+
+        if "vars" in section_name:
+            print(f"\nEditing {section_name}...")
+            for key, value in sections[section_name].items():
+                new_val = input(f"{key} (currently {value}): ").strip()
+                if new_val:
+                    sections[section_name][key] = new_val
+        else:
+            items = sections[section_name]
+            print(f"\nEditing {section_name}...")
+            new_items = []
+            for i, item in enumerate(items, 1):
+                new_item = input(f"Item {i} (currently {item}): ").strip()
+                new_items.append(new_item if new_item else item)
+            sections[section_name] = new_items
 
     return content
 
-def main():
+def interactive_prompt():
+    while True:
+        print("\nAvailable options:")
+        print("1) Generate new inventory.ini")
+        print("2) Generate new truenas-servers.yml")
+        print("3) Print out existing inventory.ini")
+        print("4) Print out existing truenas-servers.yml")
+        print("5) Edit existing inventory.ini")
+        print("6) Edit existing truenas-servers.yml")
+        print("7) Run ansible playbooks")
+        print("0) Exit")
+
+        choice = input("\nEnter your choice: ").strip()
+
+        if choice == "1":
+            main_generate_ansible_inventory()
+        elif choice == "2":
+            main_generate_truenas()
+        elif choice == "3":
+            print_file("inventory.ini")
+        elif choice == "4":
+            print_file("truenas-servers.yml")
+        elif choice == "5":
+            edit_file("inventory.ini")
+        elif choice == "6":
+            edit_file("truenas-servers.yml")
+        elif choice == "7":
+            run_ansible_playbook()
+        elif choice == "0":
+            break
+        else:
+            print("Invalid choice. Please select a valid option.")
+
+def print_file(filename):
+    with open(filename, 'r') as file:
+        print(file.read())
+
+def parse_inventory_ini(content):
+    sections = {}
+    current_section = None
+    lines = content.split("\n")
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        if line.startswith("[") and line.endswith("]"):
+            current_section = line[1:-1]
+            if "vars" in current_section:  # For sections like all:vars or ubuntu_nodes:vars
+                sections[current_section] = {}
+            else:
+                sections[current_section] = []
+        else:
+            if "vars" in current_section:
+                key, value = line.split("=")
+                sections[current_section][key] = value
+            else:
+                sections[current_section].append(line)
+
+    return sections
+
+def render_ansible_content(sections):
+    content = []
+    for section, items in sections.items():
+        if "vars" in section:
+            content.append(f"[{section}]")
+            for key, value in items.items():
+                content.append(f"{key}={value}")
+        else:
+            content.append(f"[{section}]")
+            content.extend(items)
+        content.append("")  # Add an empty line after each section for clarity
+    return "\n".join(content).rstrip("\n")
+
+def parse_truenas_servers_yml(content):
+    lines = content.split("\n")
+    servers_section = []
+    current_server = {}
+    
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        
+        if line == "servers:":
+            continue
+        
+        if line.startswith("- hostname:"):
+            if current_server:
+                servers_section.append(current_server)
+                current_server = {}
+            current_server['hostname'] = line.split(":")[1].strip()
+        elif line.startswith("token:"):
+            current_server['token'] = line.split(":")[1].strip()
+        elif line.startswith("validate_certs:"):
+            current_server['validate_certs'] = line.split(":")[1].strip() == "true"
+
+    if current_server:
+        servers_section.append(current_server)
+    
+    return {'servers': servers_section}
+
+def render_truenas_content(sections):
+    servers = sections.get('servers', [])
+    rendered_servers = []
+
+    for server in servers:
+        rendered_servers.append("- hostname: " + server['hostname'])
+        rendered_servers.append("  token: " + server['token'])
+        rendered_servers.append("  validate_certs: " + str(server['validate_certs']).lower())
+
+    return "\n".join(["servers:"] + rendered_servers)
+
+def edit_file(filename):
+    with open(filename, 'r') as file:
+        content = file.read()
+    
+    if filename == "inventory.ini":
+        sections = parse_inventory_ini(content)
+        updated_content = preview_and_edit(lambda: sections, render_ansible_content)
+    elif filename == "truenas-servers.yml":
+        sections = parse_truenas_servers_yml(content)
+        updated_content = preview_and_edit(lambda: sections, render_truenas_content)
+    else:
+        print("Unknown file format!")
+        return
+
+    with open(filename, 'w') as file:
+        file.write(updated_content)
+
+def run_ansible_playbook():
+    print("\nAvailable playbooks:")
+    print("1) update-all.sh")
+    print("2) update-packages.sh")
+    print("3) update-pihole.sh")
+    print("4) update-truenas.sh")
+    print("0) Go back")
+
+    choice = input("\nWhich playbook do you want to run?: ").strip()
+    
+    playbooks = {
+        "1": "./update-all.sh",
+        "2": "./update-packages.sh",
+        "3": "./update-pihole.sh",
+        "4": "./update-truenas.sh"
+    }
+
+    if choice in playbooks:
+        os.system(playbooks[choice])
+    elif choice == "0":
+        return
+    else:
+        print("Invalid choice. Please select a valid playbook.")
+
+def main_generate_ansible_inventory():
     ansible_content = preview_and_edit(create_ansible_content, render_ansible_content)
     ansible_filename = input("Enter the filename for the ansible inventory (default: inventory.ini): ") or "inventory.ini"
     with open(ansible_filename, "w") as f:
         f.write(ansible_content)
     os.chmod(ansible_filename, 0o600)
 
+def main_generate_truenas():
     truenas_content = preview_and_edit(create_truenas_content, render_truenas_content)
     truenas_filename = input("Enter the filename for the truenas servers (default: truenas-servers.yml): ") or "truenas-servers.yml"
     with open(truenas_filename, "w") as f:
@@ -115,4 +259,4 @@ def main():
     os.chmod(truenas_filename, 0o600)
 
 if __name__ == "__main__":
-    main()
+    interactive_prompt()
