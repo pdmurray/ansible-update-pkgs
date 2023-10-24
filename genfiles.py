@@ -44,7 +44,20 @@ def section_servers():
         if not hostname:
             break
         token = input(f"Enter token for {hostname}: ")
-        servers_info.append((hostname, token))
+
+        # Get input for validate_certs
+        while True:
+            validate_certs_input = input("Do you want to validate certs for this server? (yes/no): ").strip().lower()
+            if validate_certs_input in ['yes', 'no']:
+                validate_certs = validate_certs_input == 'yes'
+                break
+            print("Invalid input. Please enter 'yes' or 'no'.")
+
+        servers_info.append({
+            "hostname": hostname, 
+            "token": token,
+            "validate_certs": validate_certs
+        })
     return servers_info
 
 def create_truenas_content():
