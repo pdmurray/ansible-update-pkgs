@@ -24,20 +24,6 @@ def section_pihole_nodes():
         nodes_info.append((node, ansible_user))
     return nodes_info
 
-def create_ansible_content():
-    sections = {}
-    sections["all:vars"] = {"ansible_become_password": input("Enter ansible_become_password: ")}
-    sections["ubuntu_nodes"] = section_ubuntu_nodes()
-
-    if sections["ubuntu_nodes"]:
-        sections["ubuntu_nodes:vars"] = {"ansible_user": input("Enter common ansible_user for all ubuntu nodes: ")}
-
-    pihole_nodes_list = section_pihole_nodes()
-    sections["pihole_nodes"] = [f"{node[0]} ansible_user={node[1]}" for node in pihole_nodes_list]
-
-    return sections
-
-
 def section_servers():
     servers_info = []
     while True:
@@ -60,6 +46,19 @@ def section_servers():
             "validate_certs": validate_certs
         })
     return servers_info
+
+def create_ansible_content():
+    sections = {}
+    sections["all:vars"] = {"ansible_become_password": input("Enter ansible_become_password: ")}
+    sections["ubuntu_nodes"] = section_ubuntu_nodes()
+
+    if sections["ubuntu_nodes"]:
+        sections["ubuntu_nodes:vars"] = {"ansible_user": input("Enter common ansible_user for all ubuntu nodes: ")}
+
+    pihole_nodes_list = section_pihole_nodes()
+    sections["pihole_nodes"] = [f"{node[0]} ansible_user={node[1]}" for node in pihole_nodes_list]
+
+    return sections
 
 def create_truenas_content():
     return {"servers": section_servers()}
@@ -129,6 +128,100 @@ def preview_and_edit(section_fetcher, content_renderer):
         print("Discarding changes...")
         return False, content_renderer(original_sections)  # Return False indicating the changes were discarded
 
+def edit_file(filename):
+    with open(filename, 'r') as file:
+        content = file.read()
+    
+    if filename == "inventory.ini":
+        sections = parse_inventory_ini(content)
+        save_status, updated_content = preview_and_edit(lambda: sections, render_ansible_content)
+    elif filename == "truenas-servers.yml":
+        sections = parse_truenas_servers_yml(content)
+        save_status, updated_content = preview_and_edit(lambda: sections, render_truenas_content)
+    else:
+        print("Unknown file format!")
+        return
+
+    if save_status:
+        with open(filename, 'w') as file:
+            file.write(updated_content)
+
+def parse_inventory_ini(content):
+    sections = {}
+    current_section = None
+    lines = content.split("\n")
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        if line.startswith("[") and line.endswith("]"):
+            current_section = line[1:-1]
+            if "vars" in current_section:  # For sections like all:vars or ubuntu_nodes:vars
+                sections[current_section] = {}
+            else:
+                sections[current_section] = []
+        else:
+            if "vars" in current_section:
+                key, value = line.split("=")
+                sections[current_section][key] = value
+            else:
+                sections[current_section].append(line)
+
+    return sections
+
+def parse_truenas_servers_yml(content):
+    lines = content.split("\n")
+    servers_section = []
+    current_server = {}
+    
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        
+        if line == "servers:":
+            continue
+        
+        if line.startswith("- hostname:"):
+            if current_server:
+                servers_section.append(current_server)
+                current_server = {}
+            current_server['hostname'] = line.split(":")[1].strip()
+        elif line.startswith("token:"):
+            current_server['token'] = line.split(":")[1].strip()
+        elif line.startswith("validate_certs:"):
+            current_server['validate_certs'] = line.split(":")[1].strip() == "true"
+
+    if current_server:
+        servers_section.append(current_server)
+    
+    return {'servers': servers_section}
+
+def render_ansible_content(sections):
+    content = []
+    for section, items in sections.items():
+        if "vars" in section:
+            content.append(f"[{section}]")
+            for key, value in items.items():
+                content.append(f"{key}={value}")
+        else:
+            content.append(f"[{section}]")
+            content.extend(items)
+        content.append("")  # Add an empty line after each section for clarity
+    return "\n".join(content).rstrip("\n")
+
+def render_truenas_content(sections):
+    servers = sections.get('servers', [])
+    rendered_servers = []
+
+    for server in servers:
+        rendered_servers.append("- hostname: " + server['hostname'])
+        rendered_servers.append("  token: " + server['token'])
+        rendered_servers.append("  validate_certs: " + str(server['validate_certs']).lower())
+
+    return "\n".join(["servers:"] + rendered_servers)
 
 
 def interactive_prompt():
@@ -167,101 +260,6 @@ def interactive_prompt():
 def print_file(filename):
     with open(filename, 'r') as file:
         print(file.read())
-
-def parse_inventory_ini(content):
-    sections = {}
-    current_section = None
-    lines = content.split("\n")
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-
-        if line.startswith("[") and line.endswith("]"):
-            current_section = line[1:-1]
-            if "vars" in current_section:  # For sections like all:vars or ubuntu_nodes:vars
-                sections[current_section] = {}
-            else:
-                sections[current_section] = []
-        else:
-            if "vars" in current_section:
-                key, value = line.split("=")
-                sections[current_section][key] = value
-            else:
-                sections[current_section].append(line)
-
-    return sections
-
-def render_ansible_content(sections):
-    content = []
-    for section, items in sections.items():
-        if "vars" in section:
-            content.append(f"[{section}]")
-            for key, value in items.items():
-                content.append(f"{key}={value}")
-        else:
-            content.append(f"[{section}]")
-            content.extend(items)
-        content.append("")  # Add an empty line after each section for clarity
-    return "\n".join(content).rstrip("\n")
-
-def parse_truenas_servers_yml(content):
-    lines = content.split("\n")
-    servers_section = []
-    current_server = {}
-    
-    for line in lines:
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        
-        if line == "servers:":
-            continue
-        
-        if line.startswith("- hostname:"):
-            if current_server:
-                servers_section.append(current_server)
-                current_server = {}
-            current_server['hostname'] = line.split(":")[1].strip()
-        elif line.startswith("token:"):
-            current_server['token'] = line.split(":")[1].strip()
-        elif line.startswith("validate_certs:"):
-            current_server['validate_certs'] = line.split(":")[1].strip() == "true"
-
-    if current_server:
-        servers_section.append(current_server)
-    
-    return {'servers': servers_section}
-
-def render_truenas_content(sections):
-    servers = sections.get('servers', [])
-    rendered_servers = []
-
-    for server in servers:
-        rendered_servers.append("- hostname: " + server['hostname'])
-        rendered_servers.append("  token: " + server['token'])
-        rendered_servers.append("  validate_certs: " + str(server['validate_certs']).lower())
-
-    return "\n".join(["servers:"] + rendered_servers)
-
-def edit_file(filename):
-    with open(filename, 'r') as file:
-        content = file.read()
-    
-    if filename == "inventory.ini":
-        sections = parse_inventory_ini(content)
-        save_status, updated_content = preview_and_edit(lambda: sections, render_ansible_content)
-    elif filename == "truenas-servers.yml":
-        sections = parse_truenas_servers_yml(content)
-        save_status, updated_content = preview_and_edit(lambda: sections, render_truenas_content)
-    else:
-        print("Unknown file format!")
-        return
-
-    if save_status:
-        with open(filename, 'w') as file:
-            file.write(updated_content)
 
 def run_ansible_playbook():
     print("\nAvailable playbooks:")
