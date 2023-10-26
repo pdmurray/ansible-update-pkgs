@@ -87,6 +87,30 @@ def preview_and_edit(section_fetcher, content_renderer, edit_display_function=No
         else:
             section_names = list(sections.keys())
 
+        # Special handling if the 'servers' section is empty
+        if 'servers' in sections and not sections['servers']:
+            print("No servers found.")
+            add_new_server = input("Would you like to add a new server? (yes/no): ").strip().lower()
+            if add_new_server == 'yes':
+                new_server = {}
+                
+                new_server['hostname'] = input("Enter the hostname for the new server: ").strip()
+                if not new_server['hostname']:
+                    print("Hostname cannot be empty.")
+                    continue  # Go back to the start of the loop
+                
+                new_server['token'] = input("Enter the token for the new server: ").strip()
+                if not new_server['token']:
+                    print("Token cannot be empty.")
+                    continue  # Go back to the start of the loop
+
+                validate_certs = input("Enter validate_certs for the new server (True/False): ").strip().lower()
+                new_server['validate_certs'] = True if validate_certs == 'true' else False
+                
+                sections['servers'].append(new_server)
+                continue  # Go back to the start of the loop to display the updated list
+
+
         for idx, name in enumerate(section_names, 1):
             print(f"{idx}. {name}")
 
@@ -122,14 +146,28 @@ def preview_and_edit(section_fetcher, content_renderer, edit_display_function=No
             server_to_edit = next(server for server in sections['servers'] if server['hostname'] == section_name)
 
             print(f"\nEditing server details for {server_to_edit['hostname']}...")
-            new_hostname = input(f"hostname (currently {server_to_edit['hostname']}): ").strip() or server_to_edit['hostname']
-            new_token = input(f"token (currently {server_to_edit['token']}): ").strip() or server_to_edit['token']
+            
+            # Get new hostname with validation
+            while True:
+                new_hostname = input(f"hostname (currently {server_to_edit['hostname']}): ").strip() or server_to_edit['hostname']
+                if new_hostname:
+                    break
+                print("Hostname cannot be empty.")
+            
+            # Get new token with validation
+            while True:
+                new_token = input(f"token (currently {server_to_edit['token']}): ").strip() or server_to_edit['token']
+                if new_token:
+                    break
+                print("Token cannot be empty.")
+            
             new_validate_certs = input(f"validate_certs (currently {server_to_edit['validate_certs']}): ").strip()
             new_validate_certs = server_to_edit['validate_certs'] if not new_validate_certs else (True if new_validate_certs.lower() == 'true' else False)
             
             server_to_edit['hostname'] = new_hostname
             server_to_edit['token'] = new_token
             server_to_edit['validate_certs'] = new_validate_certs
+
 
         else:
             items = sections[section_name]
