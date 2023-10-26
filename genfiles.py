@@ -2,6 +2,10 @@
 import os
 import copy
 
+# Global variables for current files
+CURRENT_INVENTORY_FILENAME = "inventory.ini"
+CURRENT_TRUENAS_FILENAME = "truenas-servers.yml"
+
 def get_input_list(prompt):
     nodes = []
     while True:
@@ -128,7 +132,12 @@ def preview_and_edit(section_fetcher, content_renderer):
         print("Discarding changes...")
         return False, content_renderer(original_sections)  # Return False indicating the changes were discarded
 
-def edit_file(filename):
+def edit_existing(file_type):
+    filename = CURRENT_INVENTORY_FILENAME if file_type == 'inventory' else CURRENT_TRUENAS_FILENAME
+    if not os.path.exists(filename):
+        print(f"\n{filename} doesn't exist yet. Generate it first.\n")
+        return
+
     with open(filename, 'r') as file:
         content = file.read()
     
@@ -226,6 +235,9 @@ def render_truenas_content(sections):
 
 def interactive_prompt():
     while True:
+        print("\nWorking with:")
+        print(f"Inventory: {CURRENT_INVENTORY_FILENAME}")
+        print(f"TrueNAS Servers: {CURRENT_TRUENAS_FILENAME}")
         print("\nAvailable options:")
         print("1) Generate new inventory.ini")
         print("2) Generate new truenas-servers.yml")
@@ -233,33 +245,62 @@ def interactive_prompt():
         print("4) Print out existing truenas-servers.yml")
         print("5) Edit existing inventory.ini")
         print("6) Edit existing truenas-servers.yml")
-        print("7) Run ansible playbooks")
+        print("7) Set inventory filename")
+        print("8) Set truenas servers filename")
+        print("9) Run ansible playbooks")
         print("0) Exit")
 
         choice = input("\nEnter your choice: ").strip()
 
         if choice == "1":
-            main_generate_ansible_inventory()
+            generate_new('inventory')
         elif choice == "2":
-            main_generate_truenas()
+            generate_new('truenas')
         elif choice == "3":
-            print_file("inventory.ini")
+            print_existing("inventory")
         elif choice == "4":
-            print_file("truenas-servers.yml")
+            print_existing("truenas")
         elif choice == "5":
-            edit_file("inventory.ini")
+            edit_existing("inventory")
         elif choice == "6":
-            edit_file("truenas-servers.yml")
-        elif choice == "7":
+            edit_existing("truenas")
+        elif choice == '7':
+            set_filename('inventory')
+        elif choice == '8':
+            set_filename('truenas')
+        elif choice == "9":
             run_ansible_playbook()
         elif choice == "0":
             break
         else:
             print("Invalid choice. Please select a valid option.")
 
-def print_file(filename):
-    with open(filename, 'r') as file:
-        print(file.read())
+def print_existing(file_type):
+    filename = CURRENT_INVENTORY_FILENAME if file_type == 'inventory' else CURRENT_TRUENAS_FILENAME
+    try:
+        with open(filename, 'r') as f:
+            print(f"\nContent of {filename}:\n")
+            print(f.read())
+    except FileNotFoundError:
+        print(f"\n{filename} does not exist. Please generate the file first.")
+
+
+def set_filename(file_type):
+    """Set the working filename for the current session."""
+    global CURRENT_INVENTORY_FILENAME, CURRENT_TRUENAS_FILENAME
+    print(f"Current {file_type} filename: {CURRENT_INVENTORY_FILENAME if file_type == 'inventory' else CURRENT_TRUENAS_FILENAME}")
+    new_filename = input(f"Enter new {file_type} filename or press Enter to keep the current: ").strip()
+    if new_filename:
+        if file_type == 'inventory':
+            CURRENT_INVENTORY_FILENAME = new_filename
+        else:
+            CURRENT_TRUENAS_FILENAME = new_filename
+
+def save_to_file(content, filename):
+    with open(filename, 'w') as f:
+        f.write(content)
+    print(f"\nSaved to {filename}.")
+
 
 def run_ansible_playbook():
     print("\nAvailable playbooks:")
@@ -285,21 +326,32 @@ def run_ansible_playbook():
     else:
         print("Invalid choice. Please select a valid playbook.")
 
+def generate_new(file_type):
+    content = None
+    if file_type == 'inventory':
+        content = main_generate_ansible_inventory()  # Adjusted to use the returned content
+    else:
+        content = main_generate_truenas()  # Adjusted to use the returned content
+
+    print("\nGenerated content:\n")
+    print(content)
+    
+    save_option = input(f"\nDo you want to save as '{CURRENT_INVENTORY_FILENAME if file_type == 'inventory' else CURRENT_TRUENAS_FILENAME}'? (yes/no/new): ").strip().lower()
+    
+    if save_option == 'yes':
+        save_to_file(content, CURRENT_INVENTORY_FILENAME if file_type == 'inventory' else CURRENT_TRUENAS_FILENAME)
+    elif save_option == 'new':
+        new_filename = input(f"Enter new {file_type} filename: ").strip()
+        save_to_file(content, new_filename)
+
+
 def main_generate_ansible_inventory():
-    save_status, ansible_content = preview_and_edit(create_ansible_content, render_ansible_content)
-    if save_status:
-        ansible_filename = input("Enter the filename for the ansible inventory (default: inventory.ini): ") or "inventory.ini"
-        with open(ansible_filename, "w") as f:
-            f.write(ansible_content)
-        os.chmod(ansible_filename, 0o600)
+    _, ansible_content = preview_and_edit(create_ansible_content, render_ansible_content)
+    return ansible_content
 
 def main_generate_truenas():
-    save_status, truenas_content = preview_and_edit(create_truenas_content, render_truenas_content)
-    if save_status:
-        truenas_filename = input("Enter the filename for the truenas servers (default: truenas-servers.yml): ") or "truenas-servers.yml"
-        with open(truenas_filename, "w") as f:
-            f.write(truenas_content)
-        os.chmod(truenas_filename, 0o600)
+    _, truenas_content = preview_and_edit(create_truenas_content, render_truenas_content)
+    return truenas_content
 
 if __name__ == "__main__":
     interactive_prompt()
