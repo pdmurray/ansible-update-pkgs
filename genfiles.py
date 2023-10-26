@@ -67,22 +67,28 @@ def create_ansible_content():
 def create_truenas_content():
     return {"servers": section_servers()}
 
-def preview_and_edit(section_fetcher, content_renderer):
+def preview_and_edit(section_fetcher, content_renderer, edit_display_function=None):
+
     original_sections = section_fetcher()
     sections = copy.deepcopy(original_sections)  # Start with a fresh copy of the original content
     
     while True:
-        content = content_renderer(sections)
+        # Use edit_display_function if provided, otherwise use content_renderer
+        display_function = edit_display_function if edit_display_function else content_renderer
+        content = display_function(sections)
+
         print("\n----------------------------------------")
         print(content)
         print("----------------------------------------")
         
-        # Display section numbers after the preview
-        section_names = list(sections.keys())
+        if 'servers' in sections:
+            section_names = [server['hostname'] for server in sections['servers']]
+        else:
+            section_names = list(sections.keys())
+
         for idx, name in enumerate(section_names, 1):
             print(f"{idx}. {name}")
 
-        # Edit
         section_to_edit = input("\nEnter the section number you'd like to edit (or 'done' to finish): ").strip()
         if section_to_edit.lower() == 'done':
             break
@@ -97,23 +103,19 @@ def preview_and_edit(section_fetcher, content_renderer):
                 if new_val:
                     sections[section_name][key] = new_val
 
-        elif section_name == "servers":
-            print(f"\nEditing {section_name}...")
-            servers = sections[section_name]
-            new_servers = []
-            for idx, server in enumerate(servers):
-                print(f"\nEditing server {idx+1} details:")
-                new_hostname = input(f"hostname (currently {server['hostname']}): ").strip() or server['hostname']
-                new_token = input(f"token (currently {server['token']}): ").strip() or server['token']
-                new_validate_certs = input(f"validate_certs (currently {server['validate_certs']}): ").strip()
-                new_validate_certs = server['validate_certs'] if not new_validate_certs else (True if new_validate_certs.lower() == 'true' else False)
+        elif section_name in [server['hostname'] for server in sections.get('servers', [])]:
+            # Find the correct server using the section_name as the hostname
+            server_to_edit = next(server for server in sections['servers'] if server['hostname'] == section_name)
 
-                new_servers.append({
-                    'hostname': new_hostname,
-                    'token': new_token,
-                    'validate_certs': new_validate_certs
-                })
-            sections[section_name] = new_servers
+            print(f"\nEditing server details for {server_to_edit['hostname']}...")
+            new_hostname = input(f"hostname (currently {server_to_edit['hostname']}): ").strip() or server_to_edit['hostname']
+            new_token = input(f"token (currently {server_to_edit['token']}): ").strip() or server_to_edit['token']
+            new_validate_certs = input(f"validate_certs (currently {server_to_edit['validate_certs']}): ").strip()
+            new_validate_certs = server_to_edit['validate_certs'] if not new_validate_certs else (True if new_validate_certs.lower() == 'true' else False)
+            
+            server_to_edit['hostname'] = new_hostname
+            server_to_edit['token'] = new_token
+            server_to_edit['validate_certs'] = new_validate_certs
 
         else:
             items = sections[section_name]
@@ -124,13 +126,13 @@ def preview_and_edit(section_fetcher, content_renderer):
                 new_items.append(new_item if new_item else item)
             sections[section_name] = new_items
 
-    # Ask user whether to save or discard changes
     save_changes = input("Do you want to save the changes? (yes/no): ").strip().lower()
     if save_changes == "yes":
-        return True, content  # Return True indicating the changes should be saved
+        return True, content
     else:
         print("Discarding changes...")
-        return False, content_renderer(original_sections)  # Return False indicating the changes were discarded
+        return False, content_renderer(original_sections)
+
 
 def edit_existing(file_type):
     filename = CURRENT_INVENTORY_FILENAME if file_type == 'inventory' else CURRENT_TRUENAS_FILENAME
@@ -141,12 +143,12 @@ def edit_existing(file_type):
     with open(filename, 'r') as file:
         content = file.read()
     
-    if filename == "inventory.ini":
+    if file_type == 'inventory':
         sections = parse_inventory_ini(content)
-        save_status, updated_content = preview_and_edit(lambda: sections, render_ansible_content)
-    elif filename == "truenas-servers.yml":
-        sections = parse_truenas_servers_yml(content)
         save_status, updated_content = preview_and_edit(lambda: sections, render_truenas_content)
+    elif file_type == 'truenas':
+        sections = parse_truenas_servers_yml(content)
+        save_status, updated_content = preview_and_edit(lambda: sections, render_truenas_content, display_truenas_for_editing)
     else:
         print("Unknown file format!")
         return
@@ -154,6 +156,7 @@ def edit_existing(file_type):
     if save_status:
         with open(filename, 'w') as file:
             file.write(updated_content)
+
 
 def parse_inventory_ini(content):
     sections = {}
@@ -231,6 +234,17 @@ def render_truenas_content(sections):
         rendered_servers.append("  validate_certs: " + str(server['validate_certs']).lower())
 
     return "\n".join(["servers:"] + rendered_servers)
+
+def display_truenas_for_editing(sections):
+    content = []
+    
+    if "servers" in sections:
+        servers_content = ["servers:"]
+        for idx, server in enumerate(sections["servers"], 1):
+            server_repr = f"{idx}. hostname: {server['hostname']}\n   token: {server['token']}\n   validate_certs: {server['validate_certs']}"
+            servers_content.append(server_repr)
+        content.extend(servers_content)
+    return "\n".join(content)
 
 
 def interactive_prompt():
