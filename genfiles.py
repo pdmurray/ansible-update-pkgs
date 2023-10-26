@@ -90,10 +90,23 @@ def preview_and_edit(section_fetcher, content_renderer, edit_display_function=No
             print(f"{idx}. {name}")
 
         section_to_edit = input("\nEnter the section number you'd like to edit (or 'done' to finish): ").strip()
+
+        # First, handle the 'done' case
         if section_to_edit.lower() == 'done':
             break
 
-        section_to_edit = int(section_to_edit) - 1
+        # Now, validate the entered number
+        try:
+            section_to_edit = int(section_to_edit) - 1
+        except ValueError:
+            print("Please enter a valid section number or 'done'")
+            continue
+
+        # Check if the chosen section number is within range
+        if section_to_edit < 0 or section_to_edit >= len(section_names):
+            print("Invalid section number. Please choose a valid section or 'done'")
+            continue
+
         section_name = section_names[section_to_edit]
 
         if "vars" in section_name:
