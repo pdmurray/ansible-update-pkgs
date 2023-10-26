@@ -39,11 +39,11 @@ def section_servers():
 
         # Get input for validate_certs
         while True:
-            validate_certs_input = input("Do you want to validate certs for this server? (yes/no): ").strip().lower()
-            if validate_certs_input in ['yes', 'no']:
-                validate_certs = validate_certs_input == 'yes'
+            validate_certs_input = input("Enter validate_certs for the server (True/False): ").strip().lower()
+            if validate_certs_input in ['true', 'false']:
+                validate_certs = validate_certs_input == 'true'
                 break
-            print("Invalid input. Please enter 'yes' or 'no'.")
+            print("Invalid input. Please enter 'True' or 'False'.")
 
         servers_info.append({
             "hostname": hostname, 
@@ -178,9 +178,9 @@ def preview_and_edit(section_fetcher, content_renderer, edit_display_function=No
                 new_items.append(new_item if new_item else item)
             sections[section_name] = new_items
 
-    save_changes = input("Do you want to save the changes? (yes/no): ").strip().lower()
+    save_changes = input("Commit these edits? (yes/no): ").strip().lower()
     if save_changes == "yes":
-        return True, content
+        return True, content_renderer(sections)
     else:
         print("Discarding changes...")
         return False, content_renderer(original_sections)
@@ -208,6 +208,10 @@ def edit_existing(file_type):
     if save_status:
         with open(filename, 'w') as file:
             file.write(updated_content)
+        print("Changes saved successfully!")
+    else:
+        print("No changes were saved.")
+
 
 
 def parse_inventory_ini(content):
