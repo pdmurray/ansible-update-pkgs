@@ -385,12 +385,15 @@ def run_ansible_playbook():
     else:
         print("Invalid choice. Please select a valid playbook.")
 
+
 def generate_new(file_type):
     content = None
     if file_type == 'inventory':
-        content = main_generate_ansible_inventory()  # Adjusted to use the returned content
+        content = main_generate_ansible_inventory()
     else:
-        content = main_generate_truenas()  # Adjusted to use the returned content
+        content = main_generate_truenas()
+        if content is None:
+            return  # Exit the function if there's no valid content
 
     print("\nGenerated content:\n")
     print(content)
@@ -404,13 +407,21 @@ def generate_new(file_type):
         save_to_file(content, new_filename)
 
 
+
 def main_generate_ansible_inventory():
     _, ansible_content = preview_and_edit(create_ansible_content, render_ansible_content)
     return ansible_content
 
 def main_generate_truenas():
     _, truenas_content = preview_and_edit(create_truenas_content, render_truenas_content)
+    
+    truenas_data = yaml.safe_load(truenas_content)
+    if not truenas_data.get('servers'):
+        print("Error: At least one server must be defined to generate a TrueNAS config.")
+        return None
+
     return truenas_content
+
 
 if __name__ == "__main__":
     interactive_prompt()
