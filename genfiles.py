@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import copy
+import yaml
 
 # Global variables for current files
 CURRENT_INVENTORY_FILENAME = "inventory.ini"
@@ -224,6 +225,31 @@ def parse_truenas_servers_yml(content):
     
     return {'servers': servers_section}
 
+def is_valid_truenas_config():
+    filename = CURRENT_TRUENAS_FILENAME
+    try:
+        with open(filename, 'r') as f:
+            data = yaml.safe_load(f)
+
+        # Check if it's a dictionary
+        if not isinstance(data, dict):
+            return False
+
+        # Check for 'servers' key
+        if 'servers' not in data:
+            return False
+
+        # Validate each server entry
+        for server in data['servers']:
+            if not all(key in server for key in ['hostname', 'token', 'validate_certs']):
+                return False
+
+        return True
+
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return False
+
 def render_ansible_content(sections):
     content = []
     for section, items in sections.items():
@@ -286,11 +312,17 @@ def interactive_prompt():
         elif choice == "3":
             print_existing("inventory")
         elif choice == "4":
-            print_existing("truenas")
+            if not is_valid_truenas_config():
+                print(f"{CURRENT_TRUENAS_FILENAME} is not in a valid format. Please fix it before continuing.")
+            else:
+                print_existing("truenas")
         elif choice == "5":
             edit_existing("inventory")
         elif choice == "6":
-            edit_existing("truenas")
+            if not is_valid_truenas_config():
+                print(f"{CURRENT_TRUENAS_FILENAME} is not in a valid format. Please fix it before continuing.")
+            else:
+                edit_existing("truenas")
         elif choice == '7':
             set_filename('inventory')
         elif choice == '8':
