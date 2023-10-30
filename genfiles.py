@@ -2,32 +2,30 @@
 import os
 import copy
 import yaml
+import sys
 
 # Global variables for current files
 CURRENT_INVENTORY_FILENAME = "inventory.ini"
 CURRENT_TRUENAS_FILENAME = "truenas-servers.yml"
 
-def get_input_list(prompt):
-    nodes = []
+def get_input_list(prompt, additional_prompt=None):
+    items = []
     while True:
-        node = input(prompt)
-        if not node:
+        item = input(prompt)
+        if not item:
             break
-        nodes.append(node)
-    return nodes
+        if additional_prompt:
+            additional_data = input(additional_prompt.format(item=item))
+            items.append((item, additional_data))
+        else:
+            items.append(item)
+    return items
 
 def section_ubuntu_nodes():
     return get_input_list("Enter an ubuntu node (or press Enter to finish): ")
 
 def section_pihole_nodes():
-    nodes_info = []
-    while True:
-        node = input("Enter a pihole node (or press Enter to finish): ")
-        if not node:
-            break
-        ansible_user = input(f"Enter ansible_user for {node}: ")
-        nodes_info.append((node, ansible_user))
-    return nodes_info
+    return get_input_list("Enter a pihole node (or press Enter to finish): ", "Enter ansible_user for {item}: ")
 
 def section_servers():
     servers_info = []
@@ -466,4 +464,9 @@ def main_generate_truenas():
 
 
 if __name__ == "__main__":
-    interactive_prompt()
+    try:
+        interactive_prompt()
+
+    except KeyboardInterrupt:
+        print("\nReceived keyboard interrupt. Exiting.")
+        sys.exit(0)
